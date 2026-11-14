@@ -28,7 +28,7 @@ jobs:
       - name: Liberar espaço (as imagens são grandes)
         uses: easimon/maximize-build-space@v10
         with:
-          root-reserve-mb: 6144
+          root-reserve-mb: 20480
           swap-size-mb: 1024
           build-mount-path: /var/lib/containers
           remove-dotnet: "true"
@@ -39,13 +39,17 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - name: Mostrar espaço livre
-        run: df -h / /var/lib/containers
+      - name: Arquivos temporários no disco grande
+        run: |
+          sudo mkdir -p /var/lib/containers/tmp /etc/containers/containers.conf.d
+          printf '[engine]\nimage_copy_tmp_dir="/var/lib/containers/tmp"\n' | sudo tee /etc/containers/containers.conf.d/aila.conf
+          df -h / /var/lib/containers /var/tmp
+
 
       - name: Construir
         run: |
           OWNER="${GITHUB_REPOSITORY_OWNER,,}"
-          sudo podman build \
+          sudo env TMPDIR=/var/lib/containers/tmp podman build \
             --build-arg BASE_IMAGE="${{ matrix.base }}" \
             --build-arg BASE_TAG=stable \
             -t "ghcr.io/${OWNER}/${{ matrix.image }}:latest" \
@@ -55,4 +59,4 @@ jobs:
         run: |
           OWNER="${GITHUB_REPOSITORY_OWNER,,}"
           echo "${{ secrets.GITHUB_TOKEN }}" | sudo podman login ghcr.io -u "${{ github.actor }}" --password-stdin
-          sudo podman push "ghcr.io/${OWNER}/${{ matrix.image }}:latest"
+          sudo env TMPDIR=/var/lib/containers/tmp podman push "ghcr.io/${OWNER}/${{ matrix.image }}:latest"

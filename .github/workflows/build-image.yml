@@ -1,0 +1,61 @@
+name: Construir Aila OS Gamer
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * *"        # reconstrói todo dia para acompanhar as atualizações do Bazzite
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: aila-os-gamer            # AMD / Intel
+            base: ghcr.io/ublue-os/bazzite
+          - image: aila-os-gamer-nvidia     # placas NVIDIA
+            base: ghcr.io/ublue-os/bazzite-nvidia
+    steps:
+      - name: Liberar espaço no servidor (as imagens são grandes)
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: true
+
+      - uses: actions/checkout@v4
+
+      - name: Dono em minúsculas
+        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: Construir
+        id: build
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ matrix.image }}
+          tags: latest
+          containerfiles: ./Containerfile
+          build-args: |
+            BASE_IMAGE=${{ matrix.base }}
+            BASE_TAG=stable
+          oci: false
+
+      - name: Enviar para o ghcr.io
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build.outputs.image }}
+          tags: ${{ steps.build.outputs.tags }}
+          registry: ghcr.io/${{ env.OWNER }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}

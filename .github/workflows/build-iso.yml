@@ -1,0 +1,31 @@
+name: Gerar ISO do Aila OS Gamer (opcional)
+
+on:
+  workflow_dispatch:
+    inputs:
+      imagem:
+        description: "aila-os-gamer (AMD/Intel) ou aila-os-gamer-nvidia"
+        default: aila-os-gamer
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  iso:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: jlumbroso/free-disk-space@v1.3.1
+        with: { tool-cache: true, android: true, dotnet: true, haskell: true, large-packages: false, docker-images: true, swap-storage: true }
+      - name: Dono em minúsculas
+        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+      - name: Construir a ISO
+        uses: osbuild/bootc-image-builder-action@v4
+        with:
+          image: ghcr.io/${{ env.OWNER }}/${{ inputs.imagem }}:latest
+          types: anaconda-iso
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aila-os-gamer-iso
+          path: output/bootiso/*.iso
+          if-no-files-found: error

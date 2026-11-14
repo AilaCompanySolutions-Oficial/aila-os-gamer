@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Aila Turbo (liga/desliga)
+Comment=Pausa efeitos e indexação e usa desempenho máximo enquanto você joga
+Exec=/usr/bin/aila-turbo toggle
+Icon=aila-gamer
+Terminal=false
+Categories=Game;System;

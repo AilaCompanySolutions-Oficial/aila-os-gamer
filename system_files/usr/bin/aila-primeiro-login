@@ -1,0 +1,9 @@
+#!/bin/bash
+# Uma vez por usuário: tema neon e Brave como navegador padrão.
+FLAG="$HOME/.config/aila-gamer-primeiro-login"
+[ -f "$FLAG" ] && exit 0
+for i in $(seq 1 30); do pgrep -x plasmashell >/dev/null && break; sleep 1; done
+sleep 5
+/usr/bin/aila-tema gamer
+command -v xdg-settings >/dev/null && xdg-settings set default-web-browser com.brave.Browser.desktop 2>/dev/null
+mkdir -p "$(dirname "$FLAG")" && touch "$FLAG"

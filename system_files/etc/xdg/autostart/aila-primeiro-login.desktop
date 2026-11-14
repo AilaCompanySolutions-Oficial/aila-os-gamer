@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Aila OS Gamer - primeiro login
+Exec=/usr/bin/aila-primeiro-login
+NoDisplay=true
+X-KDE-autostart-after=panel

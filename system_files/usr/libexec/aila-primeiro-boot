@@ -1,0 +1,11 @@
+#!/bin/bash
+# Instala o Brave (Flatpak oficial) e tira o Firefox. Roda de novo no próximo boot se faltar internet.
+set -u
+exec >>/var/log/aila-primeiro-boot.log 2>&1
+echo "== $(date -Is) =="
+mkdir -p /var/lib/aila
+flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || exit 1
+flatpak install --system -y --noninteractive flathub com.brave.Browser || exit 1
+flatpak uninstall --system -y --noninteractive org.mozilla.firefox 2>/dev/null || true
+touch /var/lib/aila/brave-ok
+echo "Brave instalado."

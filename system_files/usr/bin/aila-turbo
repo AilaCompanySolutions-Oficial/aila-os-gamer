@@ -1,0 +1,26 @@
+#!/bin/bash
+# Turbo: libera o máximo do PC enquanto você joga.  aila-turbo on | off | status
+ARQ="$HOME/.cache/aila-turbo"
+QDBUS="$(command -v qdbus6 || command -v qdbus-qt6 || command -v qdbus)"
+case "${1:-status}" in
+  on)
+    command -v powerprofilesctl >/dev/null && powerprofilesctl set performance 2>/dev/null
+    [ -n "$QDBUS" ] && "$QDBUS" org.kde.KWin /Compositor suspend 2>/dev/null     # sem compositor = menos latência
+    command -v balooctl6 >/dev/null && balooctl6 suspend 2>/dev/null
+    pkill -STOP -x baloo_file_extractor 2>/dev/null
+    sync; [ "$(id -u)" = 0 ] && echo 1 > /proc/sys/vm/compact_memory
+    mkdir -p "$(dirname "$ARQ")"; touch "$ARQ"
+    notify-send -i aila-gamer "Aila Turbo ligado" "Compositor pausado, perfil desempenho, indexação parada." 2>/dev/null
+    ;;
+  off)
+    command -v powerprofilesctl >/dev/null && powerprofilesctl set balanced 2>/dev/null
+    [ -n "$QDBUS" ] && "$QDBUS" org.kde.KWin /Compositor resume 2>/dev/null
+    command -v balooctl6 >/dev/null && balooctl6 resume 2>/dev/null
+    pkill -CONT -x baloo_file_extractor 2>/dev/null
+    rm -f "$ARQ"
+    notify-send -i aila-gamer "Aila Turbo desligado" "Tudo voltou ao normal." 2>/dev/null
+    ;;
+  toggle) [ -f "$ARQ" ] && exec "$0" off || exec "$0" on ;;
+  status) [ -f "$ARQ" ] && echo "Turbo: LIGADO" || echo "Turbo: desligado" ;;
+  *) echo "Uso: aila-turbo on|off|toggle|status"; exit 1 ;;
+esac

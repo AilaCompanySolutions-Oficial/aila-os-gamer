@@ -1,0 +1,16 @@
+#!/bin/bash
+# Aplica o visual do Aila OS ao usuário atual:  aila-tema normal | gamer
+case "${1:-}" in
+  gamer)  PAPEL=/usr/share/backgrounds/aila/aila-gamer-wallpaper.png; ESQ=AilaNeon;  ICONE=aila-gamer ;;
+  normal) PAPEL=/usr/share/backgrounds/aila/aila-wallpaper.png;       ESQ=BreezeDark; ICONE=aila ;;
+  *) echo "Uso: aila-tema normal|gamer"; exit 1 ;;
+esac
+command -v plasma-apply-wallpaperimage >/dev/null && plasma-apply-wallpaperimage "$PAPEL"
+command -v plasma-apply-colorscheme >/dev/null && plasma-apply-colorscheme "$ESQ"
+K="$(command -v kwriteconfig6 || command -v kwriteconfig5)"
+[ -n "$K" ] && "$K" --file kscreenlockerrc --group Greeter --group Wallpaper --group org.kde.image --group General --key Image "file://$PAPEL"
+QDBUS="$(command -v qdbus6 || command -v qdbus-qt6 || command -v qdbus)"
+[ -n "$QDBUS" ] && "$QDBUS" org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "
+  for (var p of panels()) for (var w of p.widgets())
+    if (w.type == 'org.kde.plasma.kickoff') { w.currentConfigGroup = ['General']; w.writeConfig('icon', '$ICONE'); }" >/dev/null 2>&1
+exit 0

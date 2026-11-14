@@ -1,0 +1,19 @@
+#!/bin/bash
+# Roda qualquer jogo/programa com tudo de desempenho ligado.
+#   aila-jogo [-g] [-n] [-f] COMANDO...
+#   -g  dentro do gamescope (tela cheia, FSR, bom p/ jogos antigos ou em tela estranha)
+#   -n  na placa NVIDIA (notebooks híbridos)
+#   -f  sem o HUD de FPS (MangoHud)
+# No Steam, em Opções de inicialização:  aila-jogo %command%
+GS=0; NV=0; HUD=1
+while getopts "gnf" o; do case $o in g) GS=1;; n) NV=1;; f) HUD=0;; *) exit 1;; esac; done
+shift $((OPTIND-1))
+[ $# -gt 0 ] || { sed -n '2,8p' "$0"; exit 1; }
+
+export PROTON_USE_NTSYNC=1 PROTON_ENABLE_NVAPI=1 PROTON_NO_ESYNC=0 STAGING_SHARED_MEMORY=1 vblank_mode=0
+[ $NV = 1 ] && export __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only
+CMD=("$@")
+[ $HUD = 1 ] && command -v mangohud >/dev/null && CMD=(mangohud "${CMD[@]}")
+[ $GS = 1 ] && command -v gamescope >/dev/null && CMD=(gamescope -f --force-grab-cursor -- "${CMD[@]}")
+command -v gamemoderun >/dev/null && CMD=(gamemoderun "${CMD[@]}")
+exec "${CMD[@]}"

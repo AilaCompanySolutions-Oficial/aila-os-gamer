@@ -1,0 +1,15 @@
+[Unit]
+Description=Aila OS Gamer: instala o Brave (Flatpak) no primeiro boot com internet
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/var/lib/aila/brave-ok
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/aila-primeiro-boot
+TimeoutStartSec=1800
+Restart=on-failure
+RestartSec=120
+
+[Install]
+WantedBy=multi-user.target

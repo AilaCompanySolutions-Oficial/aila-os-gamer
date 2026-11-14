@@ -14,6 +14,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -23,39 +24,35 @@ jobs:
           - image: aila-os-gamer-nvidia     # placas NVIDIA
             base: ghcr.io/ublue-os/bazzite-nvidia
     steps:
-      - name: Liberar espaço no servidor (as imagens são grandes)
-        uses: jlumbroso/free-disk-space@v1.3.1
+      # As imagens do Bazzite são enormes: usa todo o disco do servidor para guardar as camadas
+      - name: Liberar espaço (as imagens são grandes)
+        uses: easimon/maximize-build-space@v10
         with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: false
-          docker-images: true
-          swap-storage: true
+          root-reserve-mb: 6144
+          swap-size-mb: 1024
+          build-mount-path: /var/lib/containers
+          remove-dotnet: "true"
+          remove-android: "true"
+          remove-haskell: "true"
+          remove-codeql: "true"
+          remove-docker-images: "true"
 
       - uses: actions/checkout@v4
 
-      - name: Dono em minúsculas
-        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+      - name: Mostrar espaço livre
+        run: df -h / /var/lib/containers
 
       - name: Construir
-        id: build
-        uses: redhat-actions/buildah-build@v2
-        with:
-          image: ${{ matrix.image }}
-          tags: latest
-          containerfiles: ./Containerfile
-          build-args: |
-            BASE_IMAGE=${{ matrix.base }}
-            BASE_TAG=stable
-          oci: false
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          sudo podman build \
+            --build-arg BASE_IMAGE="${{ matrix.base }}" \
+            --build-arg BASE_TAG=stable \
+            -t "ghcr.io/${OWNER}/${{ matrix.image }}:latest" \
+            -f Containerfile .
 
       - name: Enviar para o ghcr.io
-        uses: redhat-actions/push-to-registry@v2
-        with:
-          image: ${{ steps.build.outputs.image }}
-          tags: ${{ steps.build.outputs.tags }}
-          registry: ghcr.io/${{ env.OWNER }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "${{ secrets.GITHUB_TOKEN }}" | sudo podman login ghcr.io -u "${{ github.actor }}" --password-stdin
+          sudo podman push "ghcr.io/${OWNER}/${{ matrix.image }}:latest"
